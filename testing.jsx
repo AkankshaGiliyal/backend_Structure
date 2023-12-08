@@ -4,12 +4,12 @@ const { MongoClient } = require('mongodb');
   const uri = 'mongodb+srv://liltest:BI6H3uJRxYOsEsYr@cluster0.qtfou20.mongodb.net/';
   const dbName = 'vaults';
 
-  async function updateTVLData() {
+  async function updateTVLData(collectionName) {
     try {
       const client = new MongoClient(uri, { useUnifiedTopology: true });
       await client.connect();
       const database = client.db(dbName);
-      const tvlCollection = database.collection('mantle');
+      const tvlCollection = database.collection(collectionName);
       const priceCollection = database.collection('coingecko');
 
       // Fetch all TVL documents
@@ -44,9 +44,11 @@ const { MongoClient } = require('mongodb');
     }
   }
 
-  // Update TVL data initially
-  updateTVLData();
+ 
 
-  // Schedule periodic updates
-  setInterval(updateTVLData, 600000);
+  // Schedule periodic updates for both collections
+  setInterval(() => {
+    updateTVLData('mantle');
+    updateTVLData('manta-pacific');
+  }, 60000);
 })();
