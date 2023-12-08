@@ -17,7 +17,7 @@ const networks = [
     dbUrl: 'mongodb+srv://liltest:BI6H3uJRxYOsEsYr@cluster0.qtfou20.mongodb.net/',
     dbName: 'vaults',
   },
-  // Add more networks as needed
+  
 ];
 
 async function connectToDatabase(dbUrl) {
@@ -115,12 +115,12 @@ async function updateTotalAssetsForNetwork(network) {
   }
 }
 
-// Loop through each network and update assets
+
 for (const network of networks) {
   updateTotalAssetsForNetwork(network);
 }
 
-// Set interval to update assets periodically for each network
+
 const interval = setInterval(async () => {
   for (const network of networks) {
     updateTotalAssetsForNetwork(network);
