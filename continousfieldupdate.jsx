@@ -84,10 +84,10 @@ async function updateData(provider, collectionName) {
   }
 }
 
-// Update using the first provider and collection
+
 updateData(provider1, 'manta-pacific');
 
-// Update using the second provider and collection
+
 updateData(provider2, 'mantle');
 
 const interval1 = setInterval(async () => {
