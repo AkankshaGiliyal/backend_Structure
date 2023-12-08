@@ -1,7 +1,9 @@
 const { ethers } = require('ethers');
 const { MongoClient } = require('mongodb');
 const mntABI = require('./ABI.jsx');
-const provider = new ethers.providers.JsonRpcProvider("https://rpc.mantle.xyz");
+
+const provider1 = new ethers.providers.JsonRpcProvider("https://pacific-rpc.manta.network/http");
+const provider2 = new ethers.providers.JsonRpcProvider("https://rpc.mantle.xyz");
 
 const dbUrl = 'mongodb+srv://liltest:BI6H3uJRxYOsEsYr@cluster0.qtfou20.mongodb.net/';
 const dbName = 'vaults';
@@ -17,10 +19,10 @@ async function connectToDatabase() {
   }
 }
 
-async function fetchDataFromContract(client, address) {
+async function fetchDataFromContract(client, address, provider, collectionName) {
   try {
     const db = client.db(dbName);
-    const collection = db.collection('mantle');
+    const collection = db.collection(collectionName);
 
     const contract = new ethers.Contract(address, mntABI, provider);
 
@@ -49,10 +51,10 @@ async function fetchDataFromContract(client, address) {
   }
 }
 
-async function fetchAddressesFromDB(client) {
+async function fetchAddressesFromDB(client, collectionName) {
   try {
     const db = client.db(dbName);
-    const collection = db.collection('mantle');
+    const collection = db.collection(collectionName);
 
     const addresses = await collection.distinct('vaultAddress');
 
@@ -63,15 +65,15 @@ async function fetchAddressesFromDB(client) {
   }
 }
 
-async function updateData() {
+async function updateData(provider, collectionName) {
   let client;
   try {
     client = await connectToDatabase();
     
-    const addresses = await fetchAddressesFromDB(client);
+    const addresses = await fetchAddressesFromDB(client, collectionName);
     
     for (const address of addresses) {
-      await fetchDataFromContract(client, address);
+      await fetchDataFromContract(client, address, provider, collectionName);
     }
   } catch (error) {
     console.error('Error updating data:', error);
@@ -82,11 +84,20 @@ async function updateData() {
   }
 }
 
-updateData();
+// Update using the first provider and collection
+updateData(provider1, 'manta-pacific');
 
-const interval = setInterval(async () => {
-  await updateData();
+// Update using the second provider and collection
+updateData(provider2, 'mantle');
+
+const interval1 = setInterval(async () => {
+  await updateData(provider1, 'manta-pacific');
 }, 30 * 1000);
+
+const interval2 = setInterval(async () => {
+  await updateData(provider2, 'mantle');
+}, 30 * 1000);
+
 
 
 
