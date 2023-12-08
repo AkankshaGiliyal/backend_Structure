@@ -17,29 +17,35 @@ async function connectToDatabase() {
   }
 }
 
-async function fetchTotalAssetsWithFunction(client, address) {
+async function fetchDataFromContract(client, address) {
   try {
     const db = client.db(dbName);
     const collection = db.collection('mantle');
 
     const contract = new ethers.Contract(address, mntABI, provider);
+
     const totalAssets1 = await contract.totalAssets();
-    const totalAssets=totalAssets1.toString();
+    const totalSupply = await contract.totalSupply();
+    const totalTvlCap = await contract.totalTvlCap();
+
+    const totalAssets = totalAssets1.toString();
+    const supply = totalSupply.toString();
+    const tvlcap = totalTvlCap.toString();
 
     const filter = { "vaultAddress": address };
     const updateDocument = {
-      $set: { totalAssets: totalAssets },
+      $set: { totalAssets: totalAssets, totalSupply: supply, totalTvlCap: tvlcap },
     };
 
     const result = await collection.updateOne(filter, updateDocument);
 
     if (result.modifiedCount === 1) {
-      console.log(`Total Supply for ${address} updated in MongoDB:`, totalAssets);
+      console.log(`Data for ${address} updated in MongoDB:`, { totalAssets, supply, tvlcap });
     } else {
       console.error(`Document for ${address} not found in MongoDB.`);
     }
   } catch (error) {
-    console.error(`Error fetching and updating total supply for ${address}:`, error);
+    console.error(`Error fetching and updating data for ${address}:`, error);
   }
 }
 
@@ -57,7 +63,7 @@ async function fetchAddressesFromDB(client) {
   }
 }
 
-async function updateTotalAssets() {
+async function updateData() {
   let client;
   try {
     client = await connectToDatabase();
@@ -65,10 +71,10 @@ async function updateTotalAssets() {
     const addresses = await fetchAddressesFromDB(client);
     
     for (const address of addresses) {
-      await fetchTotalAssetsWithFunction(client, address);
+      await fetchDataFromContract(client, address);
     }
   } catch (error) {
-    console.error('Error updating total assets:', error);
+    console.error('Error updating data:', error);
   } finally {
     if (client) {
       await client.close();
@@ -76,10 +82,10 @@ async function updateTotalAssets() {
   }
 }
 
-updateTotalAssets();
+updateData();
 
 const interval = setInterval(async () => {
-  await updateTotalAssets();
+  await updateData();
 }, 30 * 1000);
 
 
