@@ -1,7 +1,7 @@
 const { ethers } = require('ethers');
 const { MongoClient } = require('mongodb');
 const mntABI = require('./ABI.jsx');
-const provider = new ethers.providers.JsonRpcProvider("https://rpc.mantle.xyz");
+const provider = new ethers.providers.JsonRpcProvider("https://pacific-rpc.manta.network/http");
 
 const dbUrl = 'mongodb+srv://liltest:BI6H3uJRxYOsEsYr@cluster0.qtfou20.mongodb.net/';
 const dbName = 'vaults';
@@ -20,7 +20,7 @@ async function connectToDatabase() {
 async function fetchDataFromContract(client, address) {
   try {
     const db = client.db(dbName);
-    const collection = db.collection('mantle');
+    const collection = db.collection('manta-pacific');
 
     const contract = new ethers.Contract(address, mntABI, provider);
 
@@ -34,7 +34,7 @@ async function fetchDataFromContract(client, address) {
 
     const filter = { "vaultAddress": address };
     const updateDocument = {
-      $set: { totalAssets: totalAssets, totalSupply: supply , totalTvlCap: tvlcap },
+      $set: { totalAssets: totalAssets, totalSupply: supply, totalTvlCap: tvlcap },
     };
 
     const result = await collection.updateOne(filter, updateDocument);
@@ -52,7 +52,7 @@ async function fetchDataFromContract(client, address) {
 async function fetchAddressesFromDB(client) {
   try {
     const db = client.db(dbName);
-    const collection = db.collection('mantle');
+    const collection = db.collection('manta-pacific');
 
     const addresses = await collection.distinct('vaultAddress');
 
@@ -87,6 +87,7 @@ updateData();
 const interval = setInterval(async () => {
   await updateData();
 }, 30 * 1000);
+
 
 
 
