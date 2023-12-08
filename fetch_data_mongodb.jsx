@@ -1,11 +1,18 @@
 const express = require('express');
 const { MongoClient } = require('mongodb');
 const cors = require('cors');
+const https = require('https');
+const fs = require('fs');
 
 const app = express();
-const port = 80;
-
+const port = 443;
 app.use(cors());
+
+const options = {
+  key: fs.readFileSync('/etc/letsencrypt/live/api.rivera.money/privkey.pem'),
+  cert: fs.readFileSync('/etc/letsencrypt/live/api.rivera.money/fullchain.pem')
+};
+
 
 // mongoDB connection URI
 const uri = 'mongodb+srv://liltest:BI6H3uJRxYOsEsYr@cluster0.qtfou20.mongodb.net/';
@@ -15,8 +22,8 @@ app.get('/mantle', async (req, res) => {
     const client = new MongoClient(uri, { useNewUrlParser: true });
     await client.connect();
 
-    const db = client.db('fetchdata');
-    const collection = db.collection('fetchdata1');
+    const db = client.db('vaults');
+    const collection = db.collection('mantle');
 
     // fetching the data from MongoDB
     const data = await collection.find({}).toArray();
@@ -35,8 +42,8 @@ app.get('/manta', async (req, res) => {
     const client = new MongoClient(uri, { useNewUrlParser: true });
     await client.connect();
 
-    const db = client.db('fetchdata');
-    const collection = db.collection('fetchdata2');
+    const db = client.db('vaults');
+    const collection = db.collection('manta-pacific');
 
     // fetching the data from the second collection
     const data = await collection.find({}).toArray();
@@ -269,6 +276,36 @@ app.get('/static/dex', async (req, res) => {
   }
 });
 
-app.listen(port, '0.0.0.0',() => {
+app.get('/quant', async (req, res) => {
+  try {
+    const client = new MongoClient(uri, { useUnifiedTopology: true });
+    await client.connect();
+
+    const db = client.db('vaults');
+    const collection1 = db.collection('mantle');
+    const collection2 = db.collection('manta-pacific');
+
+    const { value } = req.query; 
+
+    let filter = {};
+    if (value === 'true') {
+      filter = { quant: true };
+    } else if (value === 'false') {
+      filter = { quant: false };
+    }
+
+    const data1 = await collection1.find(filter).toArray();
+    const data2 = await collection2.find(filter).toArray();
+
+    client.close();
+
+    res.json([...data1, ...data2]);
+  } catch (error) {
+    console.error('Error handling /quant route:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+https.createServer(options, app).listen(port, () => {
   console.log(`API server is running on port ${port}`);
 });
