@@ -12,7 +12,7 @@ const { MongoClient } = require('mongodb');
       const tvlCollection = database.collection(collectionName);
       const priceCollection = database.collection('coingecko');
 
-      // Fetch all TVL documents
+      // Fetch all TVL document
       const tvlDocs = await tvlCollection.find({}).toArray();
 
       for (const tvlDoc of tvlDocs) {
