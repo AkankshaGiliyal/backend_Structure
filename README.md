@@ -1,4 +1,4 @@
-# backend_Structure
+# backend_Structure(still updating)
 ## Components
 List of major components/modules:
 - Component 1: Smart Contract Data Retrieval and Database Update
