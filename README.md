@@ -5,7 +5,7 @@ List of major components/modules:
 - Component 2: API Data Retrieval and Database Update
 - Component 3: Automation Scripts for Database Calculations
 -Component 4: API endpoints
-\n
+<br><br>
 **Component 1: Smart Contract Data Retrieval and Database Update**
   Description: This component interacts with smart contracts to retrieve data and updates the database accordingly.
   Continuous Data Retrieval and Update Script
