@@ -92,18 +92,6 @@ Process Explanation: <br>
 
 - **Component 4: API Endpoints** <br>
   Description: Defines and manages API endpoints for interacting with the application. <br>
-  Endpoint List and Descriptions: <br>
-1.	/mantle: Retrieves data from the 'mantle' collection in the 'vaults' database. <br>
-2.	/manta: Fetches data from the 'manta-pacific' collection in the 'vaults' database. <br>
-3.	/oracle/coingecko: Gathers data from the 'coingecko' collection in the 'vaults' database. <br>
-4.	/tvl_usd_sum: Calculates and provides the sum of 'tvl_usd' from mantle, manta pacific and telos vaults. <br>
-5.	/vaults: Fetches vault data based on specified criteria ('chain'). <br>
-6.	/vaults/dex: Retrieves vault data based on specified 'dex' value. <br>
-7.	/xriv/users/:walletAddress: Fetches user data from the 'xRIV' database based on a provided wallet address. <br>
-8.	/vaults/stats: Retrieves stats data from the 'stats' collection in the 'vaults' database. <br>
-9.	/static/chain: Fetches data related to 'chain' from the 'static' database. <br>
-10.	/static/dex: Retrieves data related to 'dex' from the 'static' database. <br>
-11.	/quant: Handles query parameter 'value' to retrieve data from vaults collections based on 'quant' field value. <br>
 Library Dependencies: <br>
 •	express: Used for setting up API routes and handling HTTP requests. <br>
 •	mongodb: Utilized for interacting with MongoDB databases and collections. <br>
