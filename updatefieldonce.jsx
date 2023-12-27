@@ -2,25 +2,14 @@ const { ethers } = require('ethers');
 const { MongoClient } = require('mongodb');
 const mntABI = require('./ABI.jsx');
 
-const networks = [
-  {
-    name: 'mantle',
-    providerUrl: 'https://rpc.mantle.xyz',
-    collectionName: 'mantle',
-    dbUrl: 'mongodb+srv://liltest:BI6H3uJRxYOsEsYr@cluster0.qtfou20.mongodb.net/',
-    dbName: 'vaults',
-  },
-  {
-    name: 'manta-pacific',
-    providerUrl: 'https://pacific-rpc.manta.network/http',
-    collectionName: 'manta-pacific',
-    dbUrl: 'mongodb+srv://liltest:BI6H3uJRxYOsEsYr@cluster0.qtfou20.mongodb.net/',
-    dbName: 'vaults',
-  },
-  
-];
+const provider1 = new ethers.providers.JsonRpcProvider("https://pacific-rpc.manta.network/http");
+const provider2 = new ethers.providers.JsonRpcProvider("https://rpc.mantle.xyz");
+const provider3 = new ethers.providers.JsonRpcProvider("https://mainnet.telos.net/evm")
 
-async function connectToDatabase(dbUrl) {
+const dbUrl = 'mongodb+srv://liltest:BI6H3uJRxYOsEsYr@cluster0.qtfou20.mongodb.net/';
+const dbName = 'vaults';
+
+async function connectToDatabase() {
   const client = new MongoClient(dbUrl, { useUnifiedTopology: true });
   try {
     await client.connect();
@@ -31,12 +20,53 @@ async function connectToDatabase(dbUrl) {
   }
 }
 
-async function fetchAddressesFromDB(client, dbName, collectionName) {
+async function fetchDataFromContract(client, address, provider, collectionName, chainName) {
   try {
     const db = client.db(dbName);
     const collection = db.collection(collectionName);
 
-    const addresses = await collection.distinct('vaultAddress');
+    const contract = new ethers.Contract(address, mntABI, provider);
+
+    const name = await contract.name();
+    const symbol = await contract.symbol();
+    const owner = await contract.owner();
+    const strategy = await contract.strategy();
+
+    const name1 = name.toString();
+    const symbol1 = symbol.toString();
+    const owner1 = owner.toString();
+    const strategy1 = strategy.toString();
+
+    const filter = { "vaultAddress": address, "chain": chainName };
+    const updateDocument = {
+      $set: { 
+        name: name1, 
+        symbol: symbol1, 
+        owner: owner1,
+        strategy: strategy1,
+        chain: chainName  
+      },
+    };
+
+    const result = await collection.updateOne(filter, updateDocument, { upsert: true });
+
+    if (result.modifiedCount === 1 || result.upsertedCount === 1) {
+      console.log(`Data for ${address} (${chainName}) updated/inserted in MongoDB:`, { name1, symbol1, owner1, strategy1 });
+    } else {
+      console.error(`Document for ${address} (${chainName}) not updated/inserted in MongoDB.`);
+    }
+  } catch (error) {
+    console.error(`Error fetching and updating data for ${address} (${chainName}):`, error);
+  }
+}
+
+async function fetchAddressesFromDB(client, collectionName, chainName) {
+  try {
+    const db = client.db(dbName);
+    const collection = db.collection(collectionName);
+
+    const addresses = await collection.distinct('vaultAddress', { chain: chainName });
+
     return addresses;
   } catch (error) {
     console.error('Error fetching addresses from MongoDB:', error);
@@ -44,86 +74,45 @@ async function fetchAddressesFromDB(client, dbName, collectionName) {
   }
 }
 
-async function fetchTotalAssetsWithFunction(client, dbName, collectionName, address, abi, providerUrl) {
-  try {
-    const db = client.db(dbName);
-    const collection = db.collection(collectionName);
-    const provider = new ethers.providers.JsonRpcProvider(providerUrl);
-    const contract = new ethers.Contract(address, abi, provider);
-
-    const existingDocument = await collection.findOne({ "vaultAddress": address });
-    const updateData = {};
-
-    if (!existingDocument || !existingDocument.name) {
-      const name = await contract.name();
-      updateData.name = name.toString();
-    }
-
-    if (!existingDocument || !existingDocument.symbol) {
-      const symbol = await contract.symbol();
-      updateData.symbol = symbol.toString();
-    }
-    if (!existingDocument || !existingDocument.owner) {
-      const owner = await contract.owner();
-      updateData.owner = owner.toString();
-    }
-
-    if (!existingDocument || !existingDocument.strategy) {
-      const strategy = await contract.strategy();
-      updateData.strategy = strategy.toString();
-    }
-
-    
-
-    if (Object.keys(updateData).length > 0) {
-      const filter = { "vaultAddress": address };
-      const updateDocument = { $set: updateData };
-
-      const result = await collection.updateOne(filter, updateDocument);
-
-      if (result.modifiedCount === 1) {
-        console.log(`Data for ${address} updated in MongoDB:`, updateData);
-      } else {
-        console.error(`Document for ${address} not found in MongoDB.`);
-      }
-    } else {
-      console.log(`Data for ${address} is already up-to-date.`);
-    }
-  } catch (error) {
-    console.error(`Error fetching and updating data for ${address}:`, error);
-  }
-}
-
-async function updateTotalAssetsForNetwork(network) {
-  const { providerUrl, collectionName, dbUrl, dbName } = network;
+async function updateData(provider, collectionName, chainName) {
   let client;
-
   try {
-    client = await connectToDatabase(dbUrl);
+    client = await connectToDatabase();
+    console.log('Connected to the database.');
 
-    const addresses = await fetchAddressesFromDB(client, dbName, collectionName);
-
+    const addresses = await fetchAddressesFromDB(client, collectionName, chainName);
+    console.log(`Fetched addresses for ${chainName}:`, addresses);
+    
     for (const address of addresses) {
-      await fetchTotalAssetsWithFunction(client, dbName, collectionName, address, mntABI, providerUrl);
+      console.log(`Processing ${address} (${chainName})...`);
+      await fetchDataFromContract(client, address, provider, collectionName, chainName);
     }
   } catch (error) {
-    console.error(`Error updating total assets for ${network.name}:`, error);
+    console.error('Error updating data:', error);
   } finally {
     if (client) {
       await client.close();
+      console.log('Connection to the database closed.');
     }
   }
 }
 
 
-for (const network of networks) {
-  updateTotalAssetsForNetwork(network);
-}
+updateData(provider1, 'vault', 'manta-pacific');
 
 
-const interval = setInterval(async () => {
-  for (const network of networks) {
-    updateTotalAssetsForNetwork(network);
-  }
+updateData(provider2, 'vault', 'mantle');
+
+updateData(provider3, 'vault', 'telos');
+
+const interval1 = setInterval(async () => {
+  await updateData(provider1, 'vault', 'manta-pacific');
+}, 10 *60 * 1000);
+
+const interval2 = setInterval(async () => {
+  await updateData(provider2, 'vault', 'mantle');
 }, 10 * 60 * 1000);
 
+const interval3 = setInterval(async () => {
+  await updateData(provider3, 'vault', 'telos');
+}, 10 * 60 * 1000);
