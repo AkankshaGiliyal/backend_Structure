@@ -1,22 +1,14 @@
 const express = require('express');
 const { MongoClient } = require('mongodb');
 const cors = require('cors');
-const https = require('https');
-const fs = require('fs');
 
 const app = express();
-const port = 443;
+const port = 80;
+
 app.use(cors());
-
-const options = {
-  key: fs.readFileSync('/etc/letsencrypt/live/api.rivera.money/privkey.pem'),
-  cert: fs.readFileSync('/etc/letsencrypt/live/api.rivera.money/fullchain.pem')
-};
-
 
 // mongoDB connection URI
 const uri = 'mongodb+srv://liltest:BI6H3uJRxYOsEsYr@cluster0.qtfou20.mongodb.net/';
-
 
 app.get('/oracle/coingecko', async (req, res) => {
   try {
@@ -42,7 +34,7 @@ app.get('/tvl_usd_sum', async (req, res) => {
     await client.connect();
 
     const database = client.db('vaults');
-    const collection = database.collection('vault'); 
+    const collection = database.collection('test'); // Use the 'test' collection
 
     const pipeline = [
       {
@@ -72,26 +64,34 @@ app.get('/tvl_usd_sum', async (req, res) => {
   }
 });
 
+
 app.get('/vaults', async (req, res) => {
   try {
     const chainName = req.query.chain;
+    const vaultAddress = req.query.vaultAddress;
 
     const client = new MongoClient(uri, { useUnifiedTopology: true });
     await client.connect();
 
     const database = client.db('vaults');
-    const collection = database.collection('vault'); // Use the 'test' collection
+    const collection = database.collection('vault');
 
     const projection = { _id: 0 };
     let data = [];
 
-    if (chainName) {
-     
-      const filter = { chain: chainName }; 
+    const filter = {};
 
+    if (chainName) {
+      filter.chain = chainName;
+    }
+
+    if (vaultAddress) {
+      filter.vaultAddress = vaultAddress;
+    }
+
+    if (Object.keys(filter).length > 0) {
       data = await collection.find(filter, projection).toArray();
     } else {
-      
       data = await collection.find({}, projection).toArray();
     }
 
@@ -105,6 +105,8 @@ app.get('/vaults', async (req, res) => {
 });
 
 
+
+
 app.get('/vaults/dex', async (req, res) => {
   const dexValue = req.query.dex;
 
@@ -115,7 +117,7 @@ app.get('/vaults/dex', async (req, res) => {
   try {
     const client = await MongoClient.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true });
     const db = client.db('vaults');
-    const collection = db.collection('vault'); // Use the 'test' collection
+    const collection = db.collection('test'); // Use the 'test' collection
 
     const projection = { _id: 0 };
 
@@ -129,6 +131,7 @@ app.get('/vaults/dex', async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 
 app.get('/xriv/users/:walletAddress', async (req, res) => {
@@ -215,7 +218,7 @@ app.get('/quant', async (req, res) => {
     await client.connect();
 
     const db = client.db('vaults');
-    const collection = db.collection('vault'); 
+    const collection = db.collection('test'); // Use the 'test' collection
 
     const { value } = req.query;
 
@@ -235,6 +238,8 @@ app.get('/quant', async (req, res) => {
   }
 });
 
-https.createServer(options, app).listen(port, () => {
+
+
+app.listen(port, '0.0.0.0',() => {
   console.log(`API server is running on port ${port}`);
 });
